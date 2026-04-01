@@ -2,11 +2,14 @@
 #include <string>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
 int main (int arg_count, char* argv[])
 {
+    cout << "Programa iniciado..." << endl;
+
     srand(time(0));
 
     if (arg_count < 5) //Si el usuario ingresa menos argumentos de los necesarios da "error"
@@ -33,7 +36,7 @@ int main (int arg_count, char* argv[])
         cant_num = (30LL * 1024 * 1024) / sizeof(int);
     }
 
-    if (size_arg == "SMALL") //Quitar comentarios si se desea cambiar el tamaño de los archivos
+    else if (size_arg == "SMALL") //Quitar comentarios si se desea cambiar el tamaño de los archivos
     {
         // 512 MB
         cant_num = (512LL * 1024 * 1024) / sizeof(int);
@@ -41,7 +44,7 @@ int main (int arg_count, char* argv[])
         // 256 MB
         //cant_num = (256LL * 1024 * 1024) / sizeof(int);;
     }
-    if (size_arg == "MEDIUM")
+    else if (size_arg == "MEDIUM")
     {
         // 1 GB
         cant_num = (1024LL * 1024 * 1024) / sizeof(int);
@@ -49,13 +52,18 @@ int main (int arg_count, char* argv[])
         // 512 MB
         //cant_num = (512LL * 1024 * 1024) / sizeof(int);
     }
-    if (size_arg == "LARGE")
+    else if (size_arg == "LARGE")
     {
         // 2 GB
         cant_num = (2048LL * 1024 * 1024) / sizeof(int);
 
         // 1 GB
         //cant_num = (1024LL * 1024 * 1024) / sizeof(int);
+    }
+    else
+    {
+        cout << "Error: Size '" << size_arg << "' not recognized." << endl;
+        return 1;
     }
 
     FILE *file = fopen(output_path.c_str(), "wb");
