@@ -47,7 +47,7 @@ class PagedArray
 
     // --- Constructor --- //
 
-    PagedArray(const char* file_path, int page_size, int page_count, long long total_elements);
+    PagedArray(const char* file_path, int p_size, int p_count, long long total_elems);
 
     // --- Destructor --- //
 
