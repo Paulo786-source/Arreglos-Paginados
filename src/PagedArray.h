@@ -22,7 +22,7 @@ class PagedArray
     int page_count; // Cantidad de páginas que van a estar activas en RAM
 
     // Información RAM simulada
-    int** frames; //Es un puntero doble, un arreglo de arreglos (Matriz)
+    int** data_frames; //Es un puntero doble, un arreglo de arreglos (Matriz)
     int* loaded_frames;
     int* last_used;
     bool* dirty_bit; // Indica si el frame fue modificado
