@@ -39,10 +39,10 @@ int main (int arg_count, char* argv[])
     else if (size_arg == "SMALL") //Quitar comentarios si se desea cambiar el tamaño de los archivos
     {
         // 512 MB
-        cant_num = (512LL * 1024 * 1024) / sizeof(int);
+        //cant_num = (512LL * 1024 * 1024) / sizeof(int);
 
         // 256 MB
-        //cant_num = (256LL * 1024 * 1024) / sizeof(int);;
+        cant_num = (256LL * 1024 * 1024) / sizeof(int);;
     }
     else if (size_arg == "MEDIUM")
     {
