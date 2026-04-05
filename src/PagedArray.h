@@ -1,5 +1,8 @@
 #ifndef PAGEDARRAY_H
 #define PAGEDARRAY_H
+#include <string>
+
+using namespace std;
 
 #include <cstdio>
 
@@ -47,7 +50,7 @@ class PagedArray
 
     // --- Constructor --- //
 
-    PagedArray(const char* file_path, int p_size, int p_count, long long total_elems);
+    PagedArray(const char* file_path, int p_size, int p_count);
 
     // --- Destructor --- //
 

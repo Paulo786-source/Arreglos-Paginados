@@ -1,12 +1,11 @@
 #include "PagedArray.h"
 #include <iostream>
 
-PagedArray::PagedArray(const char* file_path, int p_size, int p_count, long long total_elems)
+PagedArray::PagedArray(const char* file_path, int p_size, int p_count)
 {
     // Guardamos los parametros
     page_size = p_size;
     page_count = p_count;
-    total_elements = total_elems;
 
     // Inicializamos los contadores
     page_hits = 0;
@@ -132,6 +131,7 @@ void PagedArray::save_page_to_disk(int frame_num)
     fseek(file, pos_page, SEEK_SET);
 
     // Sobreescribimos la informacion
+    // fwrite(origen, tamaño, cantidad, archivo)
     fwrite(data_frames[frame_num], sizeof(int), page_size, file);
 
     // Actualizamos la variable dirty_bit
