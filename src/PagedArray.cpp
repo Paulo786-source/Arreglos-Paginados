@@ -20,6 +20,13 @@ PagedArray::PagedArray(const char* file_path, int p_size, int p_count)
         std::cout << "Error opening file" << std::endl;
     }
 
+    // --- Calcular el total de elementos --- //
+    fseek(file, 0, SEEK_END);
+    long long tamano_bytes = ftell(file);
+    total_elements = tamano_bytes / sizeof(int);
+    fseek(file, 0, SEEK_SET);
+
+
     // --- Memoria RAM simulada --- //
 
     loaded_frames = new int[page_count];
@@ -38,6 +45,15 @@ PagedArray::PagedArray(const char* file_path, int p_size, int p_count)
 
 PagedArray::~PagedArray()
 {
+    // Si quedan páginas sucias en la RAM, las forzamos a guardarse en disco
+    for (int i = 0; i < page_count; i++)
+    {
+        if (dirty_bit[i] == true)
+        {
+            save_page_to_disk(i);
+        }
+    }
+    
     // Cerramos el archivo
     if (file != nullptr)
     {
