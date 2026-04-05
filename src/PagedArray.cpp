@@ -137,3 +137,40 @@ void PagedArray::save_page_to_disk(int frame_num)
     // Actualizamos la variable dirty_bit
     dirty_bit[frame_num] = false;
 }
+
+int& PagedArray::operator[](long long index)
+{
+    // Calculamos la página
+    int page_number = index/page_size;
+
+    // Calculamos la posición del valor
+    int pos_in_page = index % page_size;
+
+    // Buscamos la página en RAM
+    int frame = find_page_in_RAM(page_number);
+
+    if (frame == -1) // Si no encontramos la página en RAM
+    {
+        page_faults += 1; // Sumamos un page fault
+        int lru = find_lru_frame(); // Buscamos el espacio menos usado
+        if (dirty_bit[lru] == true) // Si fue modificado, guardamos los cambios
+        {
+            save_page_to_disk(lru);
+        }
+
+        load_page_to_frame(page_number, lru); // Cargamos la página a la memoria RAM
+
+        frame = lru;
+    }
+
+    else
+    {
+        page_hits += 1;
+    }
+
+    time_counter++;
+    last_used[frame] = time_counter;
+    dirty_bit[frame] = true;
+
+    return data_frames[frame][pos_in_page];
+}
