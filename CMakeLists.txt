@@ -6,4 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
 
 add_executable(generator src/generator.cpp)
-add_executable(sorter src/sorter.cpp src/PagedArray.cpp src/PagedArray.h)
+add_executable(sorter src/sorter.cpp src/PagedArray.cpp src/PagedArray.h
+        src/SortAlgorithms.h
+        src/SortAlgorithms.cpp)

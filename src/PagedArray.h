@@ -56,6 +56,10 @@ class PagedArray
 
     ~PagedArray();
 
+    long long get_total_elements() {
+        return total_elements;
+    }
+
     // --- Sobrecarga del operador [] --- //
 
     int& operator[](long long index);
