@@ -49,6 +49,32 @@ bool clon_file(const string& in_path, const string& out_path)
     return true;
 }
 
+// Funcion que convierte a .txt
+void export_to_text(const string& binary_path, const string& txt_path)
+{
+    FILE* binary = fopen(binary_path.c_str(), "rb");
+    FILE* text = fopen(txt_path.c_str(), "w");
+    if (!binary || !text) {
+        cout << "Error al generar el archivo legible." << endl;
+        return;
+    }
+
+    int numero;
+    bool primero = true;
+
+    // Leemos de 1 en 1 entero del binario ordenado
+    while (fread(&numero, sizeof(int), 1, binary)) {
+        if (!primero) {
+            fprintf(text, ", "); // Agrega la coma antes de cada número excepto el primero
+        }
+        fprintf(text, "%d", numero);
+        primero = false;
+    }
+
+    fclose(binary);
+    fclose(text);
+}
+
 int main(int argc, char* argv[])
 {
     // Validacion de que se ingresen la cantidad de argumentos correcta
@@ -120,6 +146,10 @@ int main(int argc, char* argv[])
     cout << "Page Hits: " << arr.get_page_hits() << endl;
     cout << "Page Faults: " << arr.get_page_faults() << endl;
     cout << "=========================================" << endl;
+
+    // Generamos el nombre para el archivo legible (ej: ordenado.txt)
+    string output_txt = output_file + ".txt";
+    export_to_text(output_file, output_txt);
 
     return 0;
 }
