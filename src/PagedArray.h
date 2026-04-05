@@ -66,8 +66,8 @@ class PagedArray
 
     // --- Getters para resultados finales --- //
 
-    int get_page_hits();
-    int get_page_faults();
+    int get_page_hits() { return page_hits; }
+    int get_page_faults() { return page_faults; }
 };
 
 #endif
