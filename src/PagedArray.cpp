@@ -3,73 +3,76 @@
 
 PagedArray::PagedArray(const char* file_path, int p_size, int p_count)
 {
-    // Guardamos los parametros
-    page_size = p_size;
+    page_size  = p_size;
     page_count = p_count;
 
-    // Inicializamos los contadores
-    page_hits = 0;
+    page_hits   = 0;
     page_faults = 0;
     time_counter = 0;
 
-    // Abrir el archivo
+    // Abrir el archivo en modo lectura/escritura binario
     file = fopen(file_path, "rb+");
 
     if (file == nullptr)
     {
-        std::cout << "Error opening file" << std::endl;
+        std::cout << "Error: no se pudo abrir el archivo." << std::endl;
+        return;
     }
 
     // --- Calcular el total de elementos --- //
-    fseek(file, 0, SEEK_END);
-    long long tamano_bytes = ftell(file);
+    // CORRECCIÓN: usar fseeko/ftello o _fseeki64 para soportar archivos >2GB
+    // En Linux/macOS fseeko con off_t de 64-bit es suficiente.
+    // En Windows usar _fseeki64 / _ftelli64.
+#ifdef _WIN32
+    _fseeki64(file, 0, SEEK_END);
+    long long tamano_bytes = _ftelli64(file);
+    _fseeki64(file, 0, SEEK_SET);
+#else
+    fseeko(file, 0, SEEK_END);
+    long long tamano_bytes = (long long)ftello(file);
+    fseeko(file, 0, SEEK_SET);
+#endif
+
     total_elements = tamano_bytes / sizeof(int);
-    fseek(file, 0, SEEK_SET);
 
-
-    // --- Memoria RAM simulada --- //
-
+    // --- Inicializar la RAM simulada --- //
     loaded_frames = new int[page_count];
-    last_used = new int[page_count];
-    dirty_bit = new bool[page_count];
-    data_frames = new int*[page_count];
+    last_used     = new int[page_count];
+    dirty_bit     = new bool[page_count];
+    data_frames   = new int*[page_count];
 
     for (int i = 0; i < page_count; i++)
     {
         loaded_frames[i] = -1;
-        dirty_bit[i] = false;
-        last_used[i] = 0;
-        data_frames[i] = new int[page_size];
+        dirty_bit[i]     = false;
+        last_used[i]     = 0;
+        data_frames[i]   = new int[page_size];
     }
 }
 
 PagedArray::~PagedArray()
 {
-    // Si quedan páginas sucias en la RAM, las forzamos a guardarse en disco
+    // Guardar en disco las páginas modificadas que quedan en RAM
     for (int i = 0; i < page_count; i++)
     {
-        if (dirty_bit[i] == true)
+        if (dirty_bit[i] == true && loaded_frames[i] != -1)
         {
             save_page_to_disk(i);
         }
     }
 
-    // Cerramos el archivo
     if (file != nullptr)
     {
+        fflush(file); // Forzar flush antes de cerrar
         fclose(file);
     }
 
-    // Destruimos el puntero doble
     for (int i = 0; i < page_count; i++)
     {
         delete[] data_frames[i];
     }
 
     delete[] data_frames;
-
-    // Destruimos los demas arreglos
-
     delete[] loaded_frames;
     delete[] last_used;
     delete[] dirty_bit;
@@ -84,18 +87,18 @@ int PagedArray::find_page_in_RAM(int page_number)
             return i;
         }
     }
-
     return -1;
 }
 
 int PagedArray::find_lru_frame()
 {
-    // Si hay un espacio vacio, lo usamos
-    for (int i = 0; i < page_count; i++) {
+    // Si hay un frame vacío, úsalo directamente
+    for (int i = 0; i < page_count; i++)
+    {
         if (loaded_frames[i] == -1) return i;
     }
 
-    // Si no, buscamos el menos usado
+    // Si no, elegir el frame menos recientemente usado
     int min_value = last_used[0];
     int min_index = 0;
 
@@ -112,81 +115,96 @@ int PagedArray::find_lru_frame()
 
 void PagedArray::load_page_to_frame(int page_num, int frame_num)
 {
-    // Calculamos la posición en bytes
-    long long pos_num = (long long) page_num * page_size * sizeof(int);
+    // CORRECCIÓN: usar fseeko/fseeki64 para offsets >2GB
+    long long byte_offset = (long long)page_num * page_size * sizeof(int);
 
-    // Buscamos la posición
-    // fseek(archivo, movimiento, punto de partica)
-    fseek(file, pos_num, SEEK_SET); // SEEK_SET: Valor ya establecido que marca el inicio
+#ifdef _WIN32
+    _fseeki64(file, byte_offset, SEEK_SET);
+#else
+    fseeko(file, (off_t)byte_offset, SEEK_SET);
+#endif
 
-    // Leemos del disco a la RAM
-    // fread(destino, tamaño del elemento, cantidad de elementos, archivo)
-    fread(data_frames[frame_num], sizeof(int), page_size, file);
+    // Leer la página del disco — puede ser parcial si es la última página
+    size_t leidos = fread(data_frames[frame_num], sizeof(int), page_size, file);
 
-    // Actualizamos informacion en RAM
+    // Rellenar con cero si la página es parcial (última página del archivo)
+    for (size_t k = leidos; k < (size_t)page_size; k++)
+    {
+        data_frames[frame_num][k] = 0;
+    }
+
     loaded_frames[frame_num] = page_num;
-
-    // Actualizamos la variable dirty_bit
-    dirty_bit[frame_num] = false;
+    dirty_bit[frame_num]     = false; // Recién cargada, no modificada
 }
 
 void PagedArray::save_page_to_disk(int frame_num)
 {
     int page_num = loaded_frames[frame_num];
 
-    // Verificamos si hay algo en el frame
-    if (page_num == -1)
-    {
-        return;
-    }
+    if (page_num == -1) return;
 
-    // Donde lo vamos a guardar
-    long long pos_page = (long long) page_num * page_size * sizeof(int);
+    long long byte_offset = (long long)page_num * page_size * sizeof(int);
 
-    // Buscamos donde queremos guardar
-    fseek(file, pos_page, SEEK_SET);
+#ifdef _WIN32
+    _fseeki64(file, byte_offset, SEEK_SET);
+#else
+    fseeko(file, (off_t)byte_offset, SEEK_SET);
+#endif
 
-    // Sobreescribimos la informacion
-    // fwrite(origen, tamaño, cantidad, archivo)
     fwrite(data_frames[frame_num], sizeof(int), page_size, file);
 
-    // Actualizamos la variable dirty_bit
     dirty_bit[frame_num] = false;
 }
 
-int& PagedArray::operator[](long long index)
+// Función auxiliar: devuelve el frame donde quedó cargado el índice
+int PagedArray::get_frame_for_index(long long index)
 {
-    // Calculamos la página
-    int page_number = index/page_size;
-
-    // Calculamos la posición del valor
-    int pos_in_page = index % page_size;
-
-    // Buscamos la página en RAM
+    int page_number = (int)(index / page_size);
     int frame = find_page_in_RAM(page_number);
 
-    if (frame == -1) // Si no encontramos la página en RAM
+    if (frame == -1)
     {
-        page_faults += 1; // Sumamos un page fault
-        int lru = find_lru_frame(); // Buscamos el espacio menos usado
-        if (dirty_bit[lru] == true) // Si fue modificado, guardamos los cambios
+        page_faults++;
+        int lru = find_lru_frame();
+
+        if (dirty_bit[lru] == true && loaded_frames[lru] != -1)
         {
             save_page_to_disk(lru);
         }
 
-        load_page_to_frame(page_number, lru); // Cargamos la página a la memoria RAM
-
+        load_page_to_frame(page_number, lru);
         frame = lru;
     }
-
     else
     {
-        page_hits += 1;
+        page_hits++;
+    }
+
+    // Resetear el contador periódicamente para evitar overflow con archivos grandes
+    if (time_counter >= 2000000000)
+    {
+        // Reescalar todos los last_used de forma proporcional
+        for (int i = 0; i < page_count; i++)
+        {
+            last_used[i] = last_used[i] / 2;
+        }
+        time_counter = time_counter / 2;
     }
 
     time_counter++;
     last_used[frame] = time_counter;
-    dirty_bit[frame] = true;
 
-    return data_frames[frame][pos_in_page];
+    // NOTA: NO marcamos dirty_bit aquí. El Proxy lo hará solo si hay escritura.
+
+    return frame;
+}
+
+PagedArray::Proxy PagedArray::operator[](long long index)
+{
+    int page_number  = (int)(index / page_size);
+    int pos_in_page  = (int)(index % page_size);
+    int frame        = get_frame_for_index(index);
+
+    // Devolvemos un Proxy — el dirty_bit se activa solo si se asigna un valor
+    return Proxy(*this, frame, pos_in_page);
 }
