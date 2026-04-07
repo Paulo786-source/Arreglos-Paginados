@@ -39,15 +39,15 @@ int main(int arg_count, char* argv[])
     }
     else if (size_arg == "SMALL")
     {
-        cant_num = (128LL * 1024 * 1024) / sizeof(int);
+        cant_num = (256LL * 1024 * 1024) / sizeof(int);
     }
     else if (size_arg == "MEDIUM")
     {
-        cant_num = (1024LL * 1024 * 1024) / sizeof(int);
+        cant_num = (512LL * 1024 * 1024) / sizeof(int);
     }
     else if (size_arg == "LARGE")
     {
-        cant_num = (2048LL * 1024 * 1024) / sizeof(int);
+        cant_num = (1024LL * 1024 * 1024) / sizeof(int);
     }
     else
     {

@@ -9,101 +9,95 @@ class PagedArray
 {
     // --- Clase interna Proxy --- //
     // Permite distinguir lectura de escritura en operator[]
-    // Cuando solo se lee, NO activa dirty_bit.
-    // Cuando se asigna (=), SÍ activa dirty_bit.
     class Proxy
     {
     private:
         PagedArray& arr;
-        long long index; // CORRECCIÓN: Guardamos el índice, no el frame.
+        int frame;
+        int pos_in_page;
 
     public:
-        Proxy(PagedArray& a, long long idx) : arr(a), index(idx) {}
-
-        // Lectura: Busca el frame justo en el momento de leer
-        operator int() const
-        {
-            int frame = arr.get_frame_for_index(index);
-            return arr.data_frames[frame][index % arr.page_size];
+        Proxy(PagedArray& a, int f, int p)
+            : arr(a), frame(f), pos_in_page(p) {
         }
 
-        // Escritura: Busca el frame justo en el momento de escribir
+        operator int() const
+        {
+            return arr.data_frames[frame][pos_in_page];
+        }
+
         Proxy& operator=(int value)
         {
-            int frame = arr.get_frame_for_index(index);
-            arr.data_frames[frame][index % arr.page_size] = value;
+            arr.data_frames[frame][pos_in_page] = value;
             arr.dirty_bit[frame] = true;
             return *this;
         }
 
-        // Asignacion entre Proxies (Vital para el swap arr[i] = arr[j])
         Proxy& operator=(const Proxy& other)
         {
-            int val = (int)other; // Extrae el valor primero de forma segura
-            return operator=(val); // Lo escribe después
+            return operator=((int)other);
         }
     };
 
-    private:
+private:
 
-    // --- Variables --- //
-
-    // Variables de paginación
+    // --- Contadores --- //
     int page_hits;
     int page_faults;
 
-    // Manejo de archivo
+    // --- Archivo --- //
     FILE* file;
     long long total_elements;
 
-    // Configuración de paginación
-    int page_size; // Cantidad de datos que caben en una página
-    int page_count; // Cantidad de páginas que van a estar activas en RAM
+    // --- Configuración de paginación --- //
+    int page_size;
+    int page_count;
 
-    // Información RAM simulada
-    int** data_frames; //Es un puntero doble, un arreglo de arreglos (Matriz)
+    // --- RAM simulada --- //
+    int** data_frames;
     int* loaded_frames;
     int* last_used;
-    bool* dirty_bit; // Indica si el frame fue modificado
+    bool* dirty_bit;
 
-    int time_counter; // Nos va a ayudar con el algoritmo LRU
+    // --- HashMap: page_number → frame_index --- //
+    // Convierte find_page_in_RAM de O(pageCount) a O(1).
+    // Usa open addressing con linear probing.
+    // map_size debe ser primo y bastante mayor que page_count
+    // para mantener el factor de carga bajo (~0.5).
+    static const int EMPTY_SLOT = -1;
+    int* hash_keys;    // número de página almacenado en cada slot
+    int* hash_values;  // frame index correspondiente
+    int  map_size;     // tamaño de la tabla (primo)
 
-    // --- Funciones --- //
+    int time_counter;
 
-    // Verifica si la página esta en la RAM
-    int find_page_in_RAM(int page_number);
-
-    // Nos indica cual fue el frame que menos se ha usado
-    int find_lru_frame();
-
-    // Carga una página del disco a la RAM
+    // --- Funciones privadas --- //
+    int  find_page_in_RAM(int page_number);
+    int  find_lru_frame();
     void load_page_to_frame(int page_number, int frame_num);
-
-    // Guarda los frames en el disco
     void save_page_to_disk(int frame_num);
+    int  get_frame_for_index(long long index);
 
-    // Acceso interno al frame/pos (usado por Proxy)
-    int get_frame_for_index(long long index);
+    // HashMap helpers
+    int  hash_slot(int page_number) const;
+    void hash_insert(int page_number, int frame);
+    void hash_remove(int page_number);
 
-    public:
+    // Calcula el primo más cercano >= n (para el tamaño del HashMap)
+    static int next_prime(int n);
 
-    // --- Constructor y Destructor --- //
+public:
 
     PagedArray(const char* file_path, int p_size, int p_count);
     ~PagedArray();
 
     long long get_total_elements() const { return total_elements; }
 
-    // --- operator[] devuelve un Proxy en lugar de int& --- //
-    // Esto permite distinguir lectura de escritura
     Proxy operator[](long long index);
-
-    // --- Getters para resultados finales --- //
 
     int get_page_hits()   const { return page_hits; }
     int get_page_faults() const { return page_faults; }
 
-    // Necesario para que Proxy acceda a los internos
     friend class Proxy;
 };
 
