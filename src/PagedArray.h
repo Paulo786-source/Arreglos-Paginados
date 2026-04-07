@@ -1,13 +1,48 @@
 #ifndef PAGEDARRAY_H
 #define PAGEDARRAY_H
 #include <string>
+#include <cstdio>
 
 using namespace std;
 
-#include <cstdio>
-
 class PagedArray
 {
+    // --- Clase interna Proxy --- //
+    // Permite distinguir lectura de escritura en operator[]
+    // Cuando solo se lee, NO activa dirty_bit.
+    // Cuando se asigna (=), SÍ activa dirty_bit.
+    class Proxy
+    {
+    private:
+        PagedArray& arr;
+        int frame;
+        int pos_in_page;
+
+    public:
+        Proxy(PagedArray& a, int f, int p)
+            : arr(a), frame(f), pos_in_page(p) {}
+
+        // Lectura: convierte el Proxy a int sin marcar dirty
+        operator int() const
+        {
+            return arr.data_frames[frame][pos_in_page];
+        }
+
+        // Escritura: asigna y marca dirty_bit = true
+        Proxy& operator=(int value)
+        {
+            arr.data_frames[frame][pos_in_page] = value;
+            arr.dirty_bit[frame] = true;
+            return *this;
+        }
+
+        // Asignacion entre Proxies (necesario para swap entre dos elementos)
+        Proxy& operator=(const Proxy& other)
+        {
+            return operator=((int)other);
+        }
+    };
+
     private:
 
     // --- Variables --- //
@@ -46,28 +81,29 @@ class PagedArray
     // Guarda los frames en el disco
     void save_page_to_disk(int frame_num);
 
+    // Acceso interno al frame/pos (usado por Proxy)
+    int get_frame_for_index(long long index);
+
     public:
 
-    // --- Constructor --- //
+    // --- Constructor y Destructor --- //
 
     PagedArray(const char* file_path, int p_size, int p_count);
-
-    // --- Destructor --- //
-
     ~PagedArray();
 
-    long long get_total_elements() {
-        return total_elements;
-    }
+    long long get_total_elements() const { return total_elements; }
 
-    // --- Sobrecarga del operador [] --- //
-
-    int& operator[](long long index);
+    // --- operator[] devuelve un Proxy en lugar de int& --- //
+    // Esto permite distinguir lectura de escritura
+    Proxy operator[](long long index);
 
     // --- Getters para resultados finales --- //
 
-    int get_page_hits() { return page_hits; }
-    int get_page_faults() { return page_faults; }
+    int get_page_hits()   const { return page_hits; }
+    int get_page_faults() const { return page_faults; }
+
+    // Necesario para que Proxy acceda a los internos
+    friend class Proxy;
 };
 
 #endif

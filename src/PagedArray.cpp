@@ -53,7 +53,7 @@ PagedArray::~PagedArray()
             save_page_to_disk(i);
         }
     }
-    
+
     // Cerramos el archivo
     if (file != nullptr)
     {
