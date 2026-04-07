@@ -15,31 +15,32 @@ class PagedArray
     {
     private:
         PagedArray& arr;
-        int frame;
-        int pos_in_page;
+        long long index; // CORRECCIÓN: Guardamos el índice, no el frame.
 
     public:
-        Proxy(PagedArray& a, int f, int p)
-            : arr(a), frame(f), pos_in_page(p) {}
+        Proxy(PagedArray& a, long long idx) : arr(a), index(idx) {}
 
-        // Lectura: convierte el Proxy a int sin marcar dirty
+        // Lectura: Busca el frame justo en el momento de leer
         operator int() const
         {
-            return arr.data_frames[frame][pos_in_page];
+            int frame = arr.get_frame_for_index(index);
+            return arr.data_frames[frame][index % arr.page_size];
         }
 
-        // Escritura: asigna y marca dirty_bit = true
+        // Escritura: Busca el frame justo en el momento de escribir
         Proxy& operator=(int value)
         {
-            arr.data_frames[frame][pos_in_page] = value;
+            int frame = arr.get_frame_for_index(index);
+            arr.data_frames[frame][index % arr.page_size] = value;
             arr.dirty_bit[frame] = true;
             return *this;
         }
 
-        // Asignacion entre Proxies (necesario para swap entre dos elementos)
+        // Asignacion entre Proxies (Vital para el swap arr[i] = arr[j])
         Proxy& operator=(const Proxy& other)
         {
-            return operator=((int)other);
+            int val = (int)other; // Extrae el valor primero de forma segura
+            return operator=(val); // Lo escribe después
         }
     };
 

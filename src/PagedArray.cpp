@@ -201,10 +201,6 @@ int PagedArray::get_frame_for_index(long long index)
 
 PagedArray::Proxy PagedArray::operator[](long long index)
 {
-    int page_number  = (int)(index / page_size);
-    int pos_in_page  = (int)(index % page_size);
-    int frame        = get_frame_for_index(index);
-
-    // Devolvemos un Proxy — el dirty_bit se activa solo si se asigna un valor
-    return Proxy(*this, frame, pos_in_page);
+    // Solo le pasamos el índice, el Proxy se encargará de buscar el frame cuando se use.
+    return Proxy(*this, index);
 }

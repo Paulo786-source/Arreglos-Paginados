@@ -37,9 +37,8 @@ void quickSort(PagedArray& arr, long long inicio, long long fin)
 {
     if (inicio >= fin) return;
 
-    // Pila explícita en el heap para evitar stack overflow
-    long long total = fin - inicio + 1;
-    long long* stack = new long long[total * 2];
+    // Una pila estática súper pequeña es suficiente si la usamos bien
+    long long stack[1000];
     long long top = -1;
 
     stack[++top] = inicio;
@@ -47,30 +46,33 @@ void quickSort(PagedArray& arr, long long inicio, long long fin)
 
     while (top >= 0)
     {
-        long long hi = stack[top--];
-        long long lo = stack[top--];
+        fin = stack[top--];
+        inicio = stack[top--];
 
-        if (lo < hi)
-        {
-            long long pi = particion(arr, lo, hi);
+        long long pi = particion(arr, inicio, fin);
 
-            // Apilar subarray izquierdo
-            if (pi - 1 > lo)
-            {
-                stack[++top] = lo;
+        // OPTIMIZACIÓN VITAL: Apilar la partición más GRANDE primero.
+        // Esto asegura que la pila nunca crezca más allá de log2(N).
+        if (pi - inicio < fin - pi) {
+            if (pi + 1 < fin) {
+                stack[++top] = pi + 1;
+                stack[++top] = fin;
+            }
+            if (pi - 1 > inicio) {
+                stack[++top] = inicio;
                 stack[++top] = pi - 1;
             }
-
-            // Apilar subarray derecho
-            if (pi + 1 < hi)
-            {
+        } else {
+            if (pi - 1 > inicio) {
+                stack[++top] = inicio;
+                stack[++top] = pi - 1;
+            }
+            if (pi + 1 < fin) {
                 stack[++top] = pi + 1;
-                stack[++top] = hi;
+                stack[++top] = fin;
             }
         }
     }
-
-    delete[] stack;
 }
 
 // ==========================================
