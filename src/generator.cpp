@@ -1,16 +1,13 @@
 #include <iostream>
 #include <string>
 #include <cstdio>
-#include <cstdlib>
-#include <ctime>
+#include <random>
 
 using namespace std;
 
 int main(int arg_count, char* argv[])
 {
     cout << "Programa iniciado..." << endl;
-
-    srand((unsigned int)time(0));
 
     if (arg_count < 5)
     {
@@ -20,52 +17,44 @@ int main(int arg_count, char* argv[])
         return 1;
     }
 
-    string size_arg    = argv[2];
+    string size_arg = argv[2];
     string output_path = argv[4];
 
     long long cant_num = 0;
 
     if (size_arg == "TEST_1")
-    {
         cant_num = (10LL * 1024 * 1024) / sizeof(int);
-    }
     else if (size_arg == "TEST_2")
-    {
         cant_num = (20LL * 1024 * 1024) / sizeof(int);
-    }
     else if (size_arg == "TEST_3")
-    {
         cant_num = (30LL * 1024 * 1024) / sizeof(int);
-    }
     else if (size_arg == "SMALL")
-    {
-        cant_num = (128LL * 1024 * 1024) / sizeof(int);
-    }
+        cant_num = (256LL * 1024 * 1024) / sizeof(int);
     else if (size_arg == "MEDIUM")
-    {
-        cant_num = (1024LL * 1024 * 1024) / sizeof(int);
-    }
+        cant_num = (512LL * 1024 * 1024) / sizeof(int);
     else if (size_arg == "LARGE")
-    {
-        cant_num = (2048LL * 1024 * 1024) / sizeof(int);
-    }
+        cant_num = (1024LL * 1024 * 1024) / sizeof(int);
     else
     {
         cout << "Error: Size '" << size_arg << "' no reconocido." << endl;
-        cout << "Valores válidos: SMALL (512MB), MEDIUM (1GB), LARGE (2GB)" << endl;
         return 1;
     }
 
     FILE* file = fopen(output_path.c_str(), "wb");
-
     if (file == NULL)
     {
         cout << "Error: no se pudo abrir el archivo para escritura." << endl;
         return 1;
     }
 
-    const long long tamano_bloque = 262144; // 256 KB por bloque
+    // CORRECCIÓN: mt19937 genera números en un rango de 2^32 valores posibles,
+    // distribuidos uniformemente. rand() solo generaba 32,768 valores distintos
+    // en Windows, lo que hacía que QuickSort se comportara como O(n²).
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<int> dis(0, 1000000000);
 
+    const long long tamano_bloque = 262144;
     int* buffer = new int[tamano_bloque];
 
     cout << "Generando archivo binario, por favor espere..." << endl;
@@ -74,17 +63,12 @@ int main(int arg_count, char* argv[])
     long long i = 0;
     while (i < cant_num)
     {
-        // CORRECCIÓN: calcular cuántos enteros quedan para no pasarse del total
         long long a_escribir = tamano_bloque;
         if (i + tamano_bloque > cant_num)
-        {
             a_escribir = cant_num - i;
-        }
 
         for (long long j = 0; j < a_escribir; j++)
-        {
-            buffer[j] = rand();
-        }
+            buffer[j] = dis(gen);
 
         fwrite(buffer, sizeof(int), (size_t)a_escribir, file);
         i += a_escribir;

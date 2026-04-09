@@ -48,7 +48,7 @@ bool clon_file(const string& in_path, const string& out_path)
 void export_to_text(const string& binary_path, const string& txt_path)
 {
     FILE* binary = fopen(binary_path.c_str(), "rb");
-    FILE* text   = fopen(txt_path.c_str(), "w");
+    FILE* text = fopen(txt_path.c_str(), "w");
 
     if (!binary || !text)
     {
@@ -81,17 +81,17 @@ int main(int argc, char* argv[])
     {
         cout << "Error: argumentos insuficientes." << endl;
         cout << "Uso: sorter -input <INPUT> -output <OUTPUT> -alg <ALG> "
-             << "-pageSize <SIZE> -pageCount <COUNT>" << endl;
+            << "-pageSize <SIZE> -pageCount <COUNT>" << endl;
         cout << "Algoritmos: QS (QuickSort), MS (MergeSort), IS (InsertionSort), "
-             << "SS (SelectionSort), BS (BubbleSort)" << endl;
+            << "SS (SelectionSort), BS (BubbleSort)" << endl;
         return 1;
     }
 
-    string input_file  = argv[2];
+    string input_file = argv[2];
     string output_file = argv[4];
-    string alg         = argv[6];
-    int page_size      = stoi(argv[8]);
-    int page_count     = stoi(argv[10]);
+    string alg = argv[6];
+    int page_size = stoi(argv[8]);
+    int page_count = stoi(argv[10]);
 
     // Validaciones básicas
     if (page_size <= 0 || page_count <= 0)
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 
     cout << "Total de elementos: " << cantidad_datos << endl;
     cout << "Algoritmo: " << alg << " | pageSize: " << page_size
-         << " | pageCount: " << page_count << endl;
+        << " | pageCount: " << page_count << endl;
     cout << "Iniciando ordenamiento..." << endl;
 
     auto inicio_tiempo = high_resolution_clock::now();
@@ -157,14 +157,14 @@ int main(int argc, char* argv[])
     }
 
     auto fin_tiempo = high_resolution_clock::now();
-    auto duracion   = duration_cast<milliseconds>(fin_tiempo - inicio_tiempo);
+    auto duracion = duration_cast<milliseconds>(fin_tiempo - inicio_tiempo);
 
     cout << "=========================================" << endl;
     cout << "          RESUMEN DE EJECUCION           " << endl;
     cout << "=========================================" << endl;
     cout << "Algoritmo: " << alg << endl;
     cout << "Tiempo durado: " << duracion.count() << " milisegundos." << endl;
-    cout << "Page Hits:   " << arr.get_page_hits()   << endl;
+    cout << "Page Hits:   " << arr.get_page_hits() << endl;
     cout << "Page Faults: " << arr.get_page_faults() << endl;
     cout << "=========================================" << endl;
 
