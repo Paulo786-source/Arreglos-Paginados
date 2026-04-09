@@ -7,24 +7,66 @@ using namespace std;
 // 1. QUICKSORT ITERATIVO
 // ==========================================
 
+// Mediana de tres: compara arr[inicio], arr[mid], arr[fin]
+// y devuelve el valor del medio entre los tres.
+// Además reordena esos tres elementos en su lugar,
+// lo que mejora el caso de arrays casi ordenados.
+// Esto garantiza particiones mucho más balanceadas
+// que siempre tomar el último elemento como pivote.
+static int mediana_de_tres(PagedArray& arr, long long inicio, long long fin)
+{
+    long long mid = inicio + (fin - inicio) / 2;
+
+    int val_ini = arr.get(inicio);
+    int val_mid = arr.get(mid);
+    int val_fin = arr.get(fin);
+
+    // Ordenar los tres elementos entre sí
+    if (val_ini > val_mid)
+    {
+        arr.set(inicio, val_mid);
+        arr.set(mid, val_ini);
+        int tmp = val_ini; val_ini = val_mid; val_mid = tmp;
+    }
+    if (val_ini > val_fin)
+    {
+        arr.set(inicio, val_fin);
+        arr.set(fin, val_ini);
+        int tmp = val_ini; val_ini = val_fin; val_fin = tmp;
+    }
+    if (val_mid > val_fin)
+    {
+        arr.set(mid, val_fin);
+        arr.set(fin, val_mid);
+        int tmp = val_mid; val_mid = val_fin; val_fin = tmp;
+    }
+
+    // Ahora arr[inicio] <= arr[mid] <= arr[fin]
+    // El pivote es arr[mid] — lo movemos a arr[fin-1] para que
+    // particion solo trabaje sobre [inicio+1 .. fin-2]
+    arr.set(mid, val_fin);   // fin ya tiene val_fin (el mayor)
+    arr.set(fin, val_mid);   // pivote al final
+
+    return val_mid; // retornar el valor del pivote
+}
+
 static long long particion(PagedArray& arr, long long inicio, long long fin)
 {
-    int pivote = arr.get(fin);
+    // Usar mediana de tres para elegir un pivote balanceado
+    int pivote = mediana_de_tres(arr, inicio, fin);
+
     long long i = inicio - 1;
 
     for (long long j = inicio; j < fin; j++)
     {
-        // CORRECCIÓN: cachear arr.get(j) en una variable local.
-        // Antes se llamaba dos veces: una para comparar y otra dentro del swap.
-        // Con n log n iteraciones eso duplicaba millones de accesos innecesarios.
         int val_j = arr.get(j);
 
         if (val_j <= pivote)
         {
             i++;
-            int val_i = arr.get(i);  // cachear arr.get(i) también
-            arr.set(i, val_j);       // usar valor cacheado, no releer
-            arr.set(j, val_i);       // usar valor cacheado, no releer
+            int val_i = arr.get(i);
+            arr.set(i, val_j);
+            arr.set(j, val_i);
         }
     }
 
@@ -50,6 +92,18 @@ void quickSort(PagedArray& arr, long long inicio, long long fin)
     {
         fin = stack[top--];
         inicio = stack[top--];
+
+        if (fin - inicio < 2)
+        {
+            // Subarreglo de 2 elementos: ordenar directamente sin particionar
+            if (arr.get(inicio) > arr.get(fin))
+            {
+                int tmp = arr.get(inicio);
+                arr.set(inicio, arr.get(fin));
+                arr.set(fin, tmp);
+            }
+            continue;
+        }
 
         long long pi = particion(arr, inicio, fin);
 
@@ -94,7 +148,7 @@ void selectionSort(PagedArray& arr, long long n)
     for (long long i = 0; i < n - 1; i++)
     {
         long long min_idx = i;
-        int min_val = arr.get(i);  // cachear para evitar releer en cada comparación
+        int min_val = arr.get(i);
 
         for (long long j = i + 1; j < n; j++)
         {
@@ -125,8 +179,8 @@ void bubbleSort(PagedArray& arr, long long n)
         bool swapped = false;
         for (long long j = 0; j < n - i - 1; j++)
         {
-            int val_j = arr.get(j);      // cachear
-            int val_j1 = arr.get(j + 1);  // cachear
+            int val_j = arr.get(j);
+            int val_j1 = arr.get(j + 1);
 
             if (val_j > val_j1)
             {
@@ -162,7 +216,6 @@ void mergeSort(PagedArray& arr, long long l, long long r)
             int* buffer = new int[total_len];
             int* merged = new int[total_len];
 
-            // Leer bloque completo al buffer — acceso secuencial, mínimos faults
             for (long long k = 0; k < total_len; k++)
                 buffer[k] = arr.get(left_start + k);
 
@@ -177,7 +230,6 @@ void mergeSort(PagedArray& arr, long long l, long long r)
             while (i < left_len)  merged[out++] = buffer[i++];
             while (j < total_len) merged[out++] = buffer[j++];
 
-            // Escribir resultado de vuelta
             for (long long k = 0; k < total_len; k++)
                 arr.set(left_start + k, merged[k]);
 
