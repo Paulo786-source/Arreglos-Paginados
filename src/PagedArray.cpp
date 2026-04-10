@@ -119,17 +119,6 @@ void PagedArray::hash_remove(int page_number)
     }
 }
 
-int PagedArray::find_page_in_RAM(int page_number)
-{
-    int slot = hash_slot(page_number);
-    while (hash_keys[slot] != EMPTY_SLOT)
-    {
-        if (hash_keys[slot] == page_number) return hash_values[slot];
-        slot = (slot + 1) % map_size;
-    }
-    return -1;
-}
-
 int PagedArray::find_lru_frame()
 {
     for (int i = 0; i < page_count; i++)
