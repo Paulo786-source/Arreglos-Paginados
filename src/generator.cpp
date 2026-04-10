@@ -51,7 +51,9 @@ int main(int arg_count, char* argv[])
     // Se usa long long para soportar archivos de más de 2 GB sin overflow
     long long cant_num = 0;
 
-    if (size_arg == "TEST_1")
+    if (size_arg == "TINY")
+        cant_num = 100000;  // ~400 KB, para IS/SS/BS
+    else if (size_arg == "TEST_1")
         cant_num = (10LL * 1024 * 1024) / sizeof(int);  // 10 MB
     else if (size_arg == "TEST_2")
         cant_num = (20LL * 1024 * 1024) / sizeof(int);  // 20 MB
